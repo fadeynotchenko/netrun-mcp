@@ -1,7 +1,8 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.fadeynotchenko/netrun",
-  "description": "Publish websites and Telegram bots to Netrun (netrun.io) straight from Cursor, Claude Code, Codex and other MCP clients — upload a folder, get a public URL.",
+  "title": "Netrun",
+  "description": "Publish websites and Telegram bots to Netrun — upload a folder from your editor, get a URL",
   "repository": {
     "url": "https://github.com/fadeynotchenko/netrun-mcp",
     "source": "github"

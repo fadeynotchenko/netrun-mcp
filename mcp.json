@@ -1,0 +1,13 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.1.0/mcp.schema.json",
+  "mcpServers": {
+    "netrun": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "netrun-mcp"],
+      "env": {
+        "NETRUN_API_KEY": "${NETRUN_API_KEY}"
+      }
+    }
+  }
+}
