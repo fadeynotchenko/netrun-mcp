@@ -1,0 +1,55 @@
+{
+  "manifest_version": "0.3",
+  "name": "netrun",
+  "display_name": "Netrun",
+  "version": "0.1.0",
+  "description": "Publish websites and Telegram bots to Netrun from the chat: upload a folder, get a public URL, read logs, set secrets.",
+  "long_description": "Say “publish this bot to Netrun” and the assistant uploads the project folder, asks you for the bot token if the code needs one, waits for the build and gives you the link. “I fixed the greeting — update it” ships a new version; “why is the bot silent?” shows the logs. Paying, renewing and deleting projects stay in the Netrun dashboard.",
+  "author": {
+    "name": "Netrun",
+    "url": "https://netrun.io"
+  },
+  "homepage": "https://netrun.io/mcp",
+  "documentation": "https://github.com/fadeynotchenko/netrun-mcp#readme",
+  "support": "https://github.com/fadeynotchenko/netrun-mcp/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fadeynotchenko/netrun-mcp.git"
+  },
+  "license": "MIT",
+  "keywords": ["hosting", "deploy", "telegram-bot", "website", "netrun"],
+  "privacy_policies": ["https://netrun.io/privacy"],
+  "server": {
+    "type": "node",
+    "entry_point": "dist/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/dist/index.js"],
+      "env": {
+        "NETRUN_API_KEY": "${user_config.api_key}"
+      }
+    }
+  },
+  "user_config": {
+    "api_key": {
+      "type": "string",
+      "title": "Netrun access key",
+      "description": "Create it at netrun.io → MCP. Starts with nru_",
+      "sensitive": true,
+      "required": true
+    }
+  },
+  "tools": [
+    { "name": "netrun_publish", "description": "Upload a project folder and put it online (new project or new version)" },
+    { "name": "netrun_status", "description": "Is the project running, its URL, what blocks it, why the last publish failed" },
+    { "name": "netrun_logs", "description": "Last lines of the application output" },
+    { "name": "netrun_set_secrets", "description": "Save tokens and API keys as environment variables and re-publish" },
+    { "name": "netrun_control", "description": "Start, stop or restart a project" },
+    { "name": "netrun_list_projects", "description": "Projects of the account" },
+    { "name": "netrun_whoami", "description": "Account, plan and limits" }
+  ],
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": { "node": ">=18.0.0" }
+  }
+}

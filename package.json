@@ -1,0 +1,56 @@
+{
+  "name": "netrun-mcp",
+  "version": "0.1.0",
+  "mcpName": "io.github.fadeynotchenko/netrun",
+  "description": "Publish websites and Telegram bots to Netrun straight from Cursor, Claude Code, Codex and any other MCP client",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "netrun",
+    "deploy",
+    "hosting",
+    "telegram-bot",
+    "cursor",
+    "claude-code"
+  ],
+  "homepage": "https://netrun.io/mcp",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fadeynotchenko/netrun-mcp.git"
+  },
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "netrun-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "server.json"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build",
+    "bundle:mcpb": "npm run build && npx -y @anthropic-ai/mcpb pack . netrun.mcpb"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "fflate": "^0.8.2",
+    "ignore": "^7.0.5",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  },
+  "bugs": {
+    "url": "https://github.com/fadeynotchenko/netrun-mcp/issues"
+  }
+}
