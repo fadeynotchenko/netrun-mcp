@@ -12,6 +12,7 @@ import { z } from 'zod'
 
 import { ApiError, NetrunApi, NotConfiguredError, type Preflight, type Project } from './api.js'
 import { bundleFolder, BundleError } from './bundle.js'
+import { LIMITS, PHRASES, TOOLS } from './catalog.generated.js'
 import { VERSION, editorSetupUrl, type Config } from './config.js'
 import {
   IN_PROGRESS,
@@ -24,6 +25,15 @@ import {
   toDotenv,
 } from './format.js'
 
+/** Описание действия для агента — из единого каталога (web/src/features/mcp/
+ *  catalog.ts → catalog.generated.ts). Здесь их не пишем: тот же текст
+ *  показывается на сайте и в README, и расходиться им нельзя. */
+function toolDescription(id: string): string {
+  const found = TOOLS.find((t) => t.id === id)
+  if (!found) throw new Error(`no catalog entry for tool ${id}`)
+  return found.description
+}
+
 const INSTRUCTIONS = `Netrun hosts websites and bots (Telegram, Discord, …) for people who do not want to manage servers.
 
 Typical flow:
@@ -32,9 +42,12 @@ Typical flow:
 3. When the result says status "running", tell the user the public URL (websites) or that the bot is live (bots). If it says "failed", read "failure" and fix the code, then publish again.
 4. netrun_status and netrun_logs answer "is it working?" and "why not?".
 
+People phrase these as, for example: ${PHRASES.map((p) => `"${p}"`).join(', ')}.
+
 Rules of the platform the agent must respect:
-- Free plan: websites sleep when idle and wake on the first visit; bots and scripts get a limited amount of free running time per account, after which they stop until the user switches to Pro. Paying, renewing and deleting projects can only be done by the human in the Netrun dashboard — give them the link from the tool result instead of trying to work around it.
-- Do not call netrun_publish in a loop: one publish per code change. Builds take 1–5 minutes.`
+${LIMITS.map((l) => `- ${l}.`).join('\n')}
+- Free plan: websites sleep when idle and wake on the first visit; bots and scripts get a limited amount of free running time per account, after which they stop until the user switches to Pro.
+- Do not call netrun_publish in a loop: one publish per code change. Builds take 1-5 minutes.`
 
 const SECRETS_SCHEMA = z
   .record(z.string().regex(/^[A-Za-z0-9_]+$/, 'env variable names: letters, digits, underscore'), z.string())
@@ -67,8 +80,7 @@ export function createServer(api: NetrunApi, cfg: Config): McpServer {
     'netrun_whoami',
     {
       title: 'Netrun account',
-      description:
-        'Who the configured key belongs to, the current plan, project limit and — on the Free plan — how much free running time bots have left. Call it first when the user asks anything about their Netrun account or limits.',
+      description: toolDescription('netrun_whoami'),
       inputSchema: {},
       annotations: { readOnlyHint: true },
     },
@@ -87,7 +99,7 @@ export function createServer(api: NetrunApi, cfg: Config): McpServer {
     'netrun_list_projects',
     {
       title: 'List Netrun projects',
-      description: 'All projects of the account with id, kind, status and public URL. Use it to find project_id for other tools.',
+      description: toolDescription('netrun_list_projects'),
       inputSchema: {},
       annotations: { readOnlyHint: true },
     },
@@ -101,8 +113,7 @@ export function createServer(api: NetrunApi, cfg: Config): McpServer {
     'netrun_status',
     {
       title: 'Project status',
-      description:
-        'Current state of one project: is it running, its URL, what blocks it, and — if the last publish failed — why (stage, reason, stderr tail).',
+      description: toolDescription('netrun_status'),
       inputSchema: { project_id: z.number().int().positive() },
       annotations: { readOnlyHint: true },
     },
@@ -120,7 +131,7 @@ export function createServer(api: NetrunApi, cfg: Config): McpServer {
     'netrun_logs',
     {
       title: 'Project logs',
-      description: 'Last lines of the application output (stdout/stderr) — the first place to look when a bot is silent or a site errors.',
+      description: toolDescription('netrun_logs'),
       inputSchema: {
         project_id: z.number().int().positive(),
         lines: z.number().int().min(10).max(1000).default(150).describe('How many trailing lines to return'),
@@ -137,10 +148,7 @@ export function createServer(api: NetrunApi, cfg: Config): McpServer {
     'netrun_publish',
     {
       title: 'Publish to Netrun',
-      description:
-        'Upload a project folder and put it online: creates a new project (pass name) or ships a new version of an existing one (pass project_id). ' +
-        'Detects the language automatically (Python, Node, Go, Rust, PHP, static HTML, Docker, docker-compose…). ' +
-        'Waits for the build and returns the public URL or the failure reason. If it returns needs_secrets, ask the user for the values and call again with "secrets".',
+      description: toolDescription('netrun_publish'),
       inputSchema: {
         path: z.string().min(1).describe('Absolute path to the project folder on this machine'),
         name: z
@@ -167,9 +175,7 @@ export function createServer(api: NetrunApi, cfg: Config): McpServer {
     'netrun_set_secrets',
     {
       title: 'Set project secrets',
-      description:
-        'Save environment variables (tokens, API keys, passwords) for a project. Values are stored encrypted and never returned. ' +
-        'By default the project is re-published so the app picks them up. Ask the user for the values — do not invent them.',
+      description: toolDescription('netrun_set_secrets'),
       inputSchema: {
         project_id: z.number().int().positive(),
         secrets: SECRETS_SCHEMA,
@@ -196,7 +202,7 @@ export function createServer(api: NetrunApi, cfg: Config): McpServer {
     'netrun_control',
     {
       title: 'Start / stop / restart',
-      description: 'Start, stop or restart a project. Stopping a Free-plan bot does not pause its free running time.',
+      description: toolDescription('netrun_control'),
       inputSchema: {
         project_id: z.number().int().positive(),
         action: z.enum(['start', 'stop', 'restart']),

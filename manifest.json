@@ -3,8 +3,8 @@
   "name": "netrun",
   "display_name": "Netrun",
   "version": "0.1.0",
-  "description": "Publish websites and Telegram bots to Netrun from the chat: upload a folder, get a public URL, read logs, set secrets.",
-  "long_description": "Say “publish this bot to Netrun” and the assistant uploads the project folder, asks you for the bot token if the code needs one, waits for the build and gives you the link. “I fixed the greeting — update it” ships a new version; “why is the bot silent?” shows the logs. Paying, renewing and deleting projects stay in the Netrun dashboard.",
+  "description": "Publish websites and Telegram bots to Netrun — upload a folder from your editor, get a URL",
+  "long_description": "MCP is the common way to connect external services to AI editors. Once Netrun is connected, you tell the agent “publish this bot to Netrun”: it uploads the code folder, asks for a token if the code needs one, waits for the build and gives you the link. Works in Cursor, Claude Code, Codex, Claude Desktop, VS Code and Windsurf. Setup takes a minute and one command.",
   "author": {
     "name": "Netrun",
     "url": "https://netrun.io"
@@ -17,14 +17,24 @@
     "url": "https://github.com/fadeynotchenko/netrun-mcp.git"
   },
   "license": "MIT",
-  "keywords": ["hosting", "deploy", "telegram-bot", "website", "netrun"],
-  "privacy_policies": ["https://netrun.io/privacy"],
+  "keywords": [
+    "hosting",
+    "deploy",
+    "telegram-bot",
+    "website",
+    "netrun"
+  ],
+  "privacy_policies": [
+    "https://netrun.io/privacy"
+  ],
   "server": {
     "type": "node",
     "entry_point": "dist/index.js",
     "mcp_config": {
       "command": "node",
-      "args": ["${__dirname}/dist/index.js"],
+      "args": [
+        "${__dirname}/dist/index.js"
+      ],
       "env": {
         "NETRUN_API_KEY": "${user_config.api_key}"
       }
@@ -40,16 +50,43 @@
     }
   },
   "tools": [
-    { "name": "netrun_publish", "description": "Upload a project folder and put it online (new project or new version)" },
-    { "name": "netrun_status", "description": "Is the project running, its URL, what blocks it, why the last publish failed" },
-    { "name": "netrun_logs", "description": "Last lines of the application output" },
-    { "name": "netrun_set_secrets", "description": "Save tokens and API keys as environment variables and re-publish" },
-    { "name": "netrun_control", "description": "Start, stop or restart a project" },
-    { "name": "netrun_list_projects", "description": "Projects of the account" },
-    { "name": "netrun_whoami", "description": "Account, plan and limits" }
+    {
+      "name": "netrun_publish",
+      "description": "Uploads a project folder and puts it online — a new project or a new version of an existing one. Detects the stack (Python, Node, Go, Rust, PHP, static HTML, Docker, docker-compose), asks for missing secrets, waits for the build and returns the URL or the failure reason"
+    },
+    {
+      "name": "netrun_status",
+      "description": "Is the project running, its URL, what blocks it and why the last publish failed"
+    },
+    {
+      "name": "netrun_logs",
+      "description": "Last lines of the application output — the first place to look when a bot goes silent"
+    },
+    {
+      "name": "netrun_set_secrets",
+      "description": "Saves tokens and API keys as environment variables (stored encrypted) and re-publishes so the app picks them up"
+    },
+    {
+      "name": "netrun_control",
+      "description": "Start, stop or restart a project"
+    },
+    {
+      "name": "netrun_list_projects",
+      "description": "All projects of the account with URLs and state"
+    },
+    {
+      "name": "netrun_whoami",
+      "description": "The plan, how many projects are available and how much free running time bots have left"
+    }
   ],
   "compatibility": {
-    "platforms": ["darwin", "win32", "linux"],
-    "runtimes": { "node": ">=18.0.0" }
+    "platforms": [
+      "darwin",
+      "win32",
+      "linux"
+    ],
+    "runtimes": {
+      "node": ">=18.0.0"
+    }
   }
 }

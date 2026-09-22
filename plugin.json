@@ -10,5 +10,12 @@
   "homepage": "https://netrun.io/mcp",
   "repository": "https://github.com/fadeynotchenko/netrun-mcp",
   "license": "MIT",
-  "keywords": ["mcp", "hosting", "deploy", "telegram-bot", "website", "netrun"]
+  "keywords": [
+    "mcp",
+    "hosting",
+    "deploy",
+    "telegram-bot",
+    "website",
+    "netrun"
+  ]
 }
