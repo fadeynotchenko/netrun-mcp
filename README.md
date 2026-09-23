@@ -4,7 +4,7 @@
 
 Publish websites and Telegram bots to Netrun — upload a folder from your editor, get a URL.
 
-MCP is the common way to connect external services to AI editors. Once Netrun is connected, you tell the agent “publish this bot to Netrun”: it uploads the code folder, asks for a token if the code needs one, waits for the build and gives you the link. Works in Cursor, Claude Code, Codex, Claude Desktop, VS Code and Windsurf. Setup takes a minute and one command.
+Connect Netrun to your AI editor and just ask: “publish this bot”. The agent uploads your code folder and sends back the link
 
 > Publish this bot to Netrun
 >

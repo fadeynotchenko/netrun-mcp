@@ -179,6 +179,37 @@ describe('netrun_publish', () => {
     expect(failure.stderr_tail).toContain('No matching distribution')
   })
 
+  it('says what to do when the free plan is already used up by the first project', async () => {
+    // Второй проект на бесплатном тарифе: сервер отвечает 402
+    // limit_exceeded, и агент обязан предложить человеку выбор —
+    // обновить существующий проект или докупить место/тариф. Молчаливое
+    // «не получилось» здесь стоило бы платформе покупки.
+    const api = new FakeApi()
+    const { ApiError } = await import('../src/api.js')
+    api.createProject = async () => {
+      throw new ApiError(402, "You've reached your plan limit", 'limit_exceeded', {
+        code: 'limit_exceeded',
+        metric: 'projects.active',
+        limit: 1,
+        current: 1,
+        tier: 'free',
+      })
+    }
+    const client = await connect(api)
+    const result = await client.callTool({
+      name: 'netrun_publish',
+      arguments: { path: await tmpProject(), name: 'second', secrets: { BOT_TOKEN: 'x' } },
+    })
+    expect(result.isError).toBe(true)
+    const res = payload(result)
+    expect(res.error).toBe('limit_exceeded')
+    expect(String(res.message)).toMatch(/project limit/i)
+    expect(String(res.message)).toMatch(/project_id/)
+    expect(String(res.message)).toMatch(/place|plan/i)
+    expect(String(res.upgrade)).toContain('https://app.test/checkout')
+    expect(res.detail).toMatchObject({ metric: 'projects.active', tier: 'free' })
+  })
+
   it('tells the agent where the human must go when the platform says interactive_required', async () => {
     const api = new FakeApi()
     api.control = async () => {
