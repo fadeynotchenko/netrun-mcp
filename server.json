@@ -8,12 +8,12 @@
     "source": "github"
   },
   "websiteUrl": "https://netrun.io/mcp",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "netrun-mcp",
-      "version": "0.1.0",
+      "version": "0.3.0",
       "transport": {
         "type": "stdio"
       },
@@ -26,6 +26,12 @@
           "format": "string"
         }
       ]
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://api.netrun.io/v1/mcp"
     }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.1.0/plugin.schema.json",
   "name": "netrun",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Publish websites and Telegram bots to Netrun — upload a folder from your editor, get a URL",
   "author": {
     "name": "Netrun",

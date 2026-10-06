@@ -11,7 +11,7 @@ export const TOOLS = [
   {
     "id": "netrun_status",
     "title": "Status",
-    "description": "Is the project running, its URL, what blocks it and why the last publish failed. Call it instead of publishing again when the user asks whether something works."
+    "description": "Is the project running, its URL, what blocks it, which secrets are already set and why the last publish failed. Call it instead of publishing again when the user asks whether something works. It also lists the NAMES of the secrets already saved (never the values) — check them before asking the user for a token they have already given."
   },
   {
     "id": "netrun_logs",
@@ -22,6 +22,16 @@ export const TOOLS = [
     "id": "netrun_set_secrets",
     "title": "Secrets",
     "description": "Saves tokens and API keys as environment variables (stored encrypted) and re-publishes so the app picks them up. Values are never returned back. Ask the user for them."
+  },
+  {
+    "id": "netrun_link",
+    "title": "Public link",
+    "description": "Decides whether the project gets a public HTTPS address — for example a webhook bot we took for a background program. Re-publishes the project; the link appears if the app answers requests from the internet. Netrun guesses from the code whether a project needs an address, and a webhook bot or an API can look like a background program. Use needed=true when the user needs a URL (webhook, API, website) but the project has none; needed=false when a bot got an address it does not need. The choice survives later code updates. It re-publishes the project (a short restart). For the link to appear the app must listen on 0.0.0.0 on the port from the PORT environment variable; if it does not answer, Netrun keeps it running in the background without a link — fix the code and call again. After the link appears, register it (plus the handler path) with the bot platform yourself, e.g. Telegram setWebhook."
+  },
+  {
+    "id": "netrun_domains",
+    "title": "Custom domain",
+    "description": "Points your own domain at the site and checks whether the registrar settings have taken effect. Until they have, it shows which records to add. Give the DNS records to the user verbatim and ask them to add those at their registrar, then call again with action \"check\" — records take minutes to hours to spread. Custom domains need a paid plan and a website (bots have no address). Removing a domain stays in the dashboard."
   },
   {
     "id": "netrun_control",
@@ -57,7 +67,7 @@ export const PHRASES = [
 ] as const
 
 export const TAGLINE = "Publish websites and Telegram bots to Netrun — upload a folder from your editor, get a URL"
-export const ANSWER = "Connect Netrun to your AI editor and just ask: “publish this bot”. The agent uploads your code folder and sends back the link. MCP is the common way to connect external services to AI editors. With Netrun connected, you tell the agent in chat that you want the project online: it uploads the code folder, asks for a token if the code needs one, waits for the build and gives you the link. Works in Cursor, Claude Code, Codex, Claude Desktop, VS Code and Windsurf.. MCP is the common way to connect external services to AI editors. With Netrun connected, you tell the agent in chat that you want the project online: it uploads the code folder, asks for a token if the code needs one, waits for the build and gives you the link. Works in Cursor, Claude Code, Codex, Claude Desktop, VS Code and Windsurf."
+export const ANSWER = "Connect Netrun to your AI editor and just ask: “publish this bot”. The agent uploads your code folder and sends back the link. MCP is the common way to connect external services to AI editors. With Netrun connected, you tell the agent in chat that you want the project online: it uploads the code folder, asks for a token if the code needs one, waits for the build and gives you the link. Works in Cursor, Claude Code, Codex, Claude Desktop, VS Code and Windsurf."
 export const KEY_ENV = "NETRUN_API_KEY"
 export const PACKAGE = "netrun-mcp"
 export const SERVER_NAME = "netrun"

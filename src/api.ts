@@ -39,6 +39,8 @@ export type Project = {
   status: string
   runtime: string
   app_kind: 'web' | 'bot' | 'script' | string
+  /** Выбор человека: `web` — «мне нужна ссылка», `script` — «ссылка не нужна». */
+  app_kind_pinned?: 'web' | 'script' | null
   host_url: string | null
   last_error: string | null
   files_count: number
@@ -68,6 +70,25 @@ export type Preflight = {
   env_templates_kv?: Record<string, Record<string, string>>
   warnings: string[]
 }
+
+/** Одна DNS-запись из инструкции: что вписать у регистратора. */
+export type DomainDnsRecord = { type: 'A' | 'CNAME'; name: string; value: string }
+
+export type ProjectDomain = {
+  id: number
+  domain: string
+  status: 'pending' | 'verified' | 'failed'
+  is_primary: boolean
+  dns_records: DomainDnsRecord[]
+  /** Заполняется только ответом на проверку: «куда домен смотрит сейчас»
+   *  против «куда должен». Единственный ответ на «я всё вписал, почему не
+   *  работает». */
+  checked: boolean
+  found_ips: string[]
+  expected_ips: string[]
+}
+
+export type DomainsState = { domains: ProjectDomain[] }
 
 export type ProjectEvent = {
   id: number
@@ -298,6 +319,36 @@ export class NetrunApi {
 
   async control(id: number, action: 'start' | 'stop' | 'restart'): Promise<Project> {
     return (await this.request<Project>(`/projects/${id}/${action}`, { method: 'POST' })) as Project
+  }
+
+  /** «Мне нужна ссылка» / «Ссылка не нужна» — та же ручка, что кнопка в
+   *  кабинете. Сразу ставит проект на повторную публикацию. */
+  async setLink(id: number, needed: boolean): Promise<Project> {
+    return (await this.request<Project>(`/projects/${id}/app-kind`, {
+      method: 'PUT',
+      json: { app_kind: needed ? 'web' : 'script' },
+    })) as Project
+  }
+
+  /** Свои домены проекта. Все три ручки отвечают ОДНОЙ формой — списком
+   *  доменов целиком, поэтому и тип один. */
+  async listDomains(id: number): Promise<DomainsState> {
+    return (await this.request<DomainsState>(`/projects/${id}/domains`)) as DomainsState
+  }
+
+  async addDomain(id: number, domain: string): Promise<DomainsState> {
+    return (await this.request<DomainsState>(`/projects/${id}/domains`, {
+      json: { domain },
+    })) as DomainsState
+  }
+
+  /** ⚠️ Проверка ПАКЕТНАЯ на весь проект — так устроена сама ручка: один
+   *  вызов = одна пересборка контейнера, иначе каждый домен стоил бы
+   *  работающему сайту отдельного простоя. */
+  async verifyDomains(id: number): Promise<DomainsState> {
+    return (await this.request<DomainsState>(`/projects/${id}/domains/verify`, {
+      method: 'POST',
+    })) as DomainsState
   }
 
   async eventsHistory(id: number): Promise<ProjectEvent[]> {

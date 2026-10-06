@@ -98,6 +98,8 @@ describe('netrun_publish', () => {
     const tools = (await client.listTools()).tools.map((t) => t.name).sort()
     expect(tools).toEqual([
       'netrun_control',
+      'netrun_domains',
+      'netrun_link',
       'netrun_list_projects',
       'netrun_logs',
       'netrun_publish',

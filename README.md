@@ -4,7 +4,7 @@
 
 Publish websites and Telegram bots to Netrun — upload a folder from your editor, get a URL.
 
-Connect Netrun to your AI editor and just ask: “publish this bot”. The agent uploads your code folder and sends back the link
+Connect Netrun to your AI editor and just ask: “publish this bot”. The agent uploads your code folder and sends back the link. MCP is the common way to connect external services to AI editors. With Netrun connected, you tell the agent in chat that you want the project online: it uploads the code folder, asks for a token if the code needs one, waits for the build and gives you the link. Works in Cursor, Claude Code, Codex, Claude Desktop, VS Code and Windsurf.
 
 > Publish this bot to Netrun
 >
@@ -24,7 +24,7 @@ Connect Netrun to your AI editor and just ask: “publish this bot”. The agent
   "mcpServers": {
     "netrun": {
       "command": "npx",
-      "args": ["-y", "netrun-mcp"],
+      "args": ["-y", "netrun-mcp@latest"],
       "env": {
         "NETRUN_API_KEY": "nru_…"
       }
@@ -34,8 +34,8 @@ Connect Netrun to your AI editor and just ask: “publish this bot”. The agent
 ```
 
 - **Cursor** — click *Add to Cursor* on the MCP page, or put the JSON above into `~/.cursor/mcp.json`.
-- **Claude Code** — `claude mcp add netrun -s user -e NETRUN_API_KEY=nru_… -- npx -y netrun-mcp`
-- **Codex** — `codex mcp add netrun --env NETRUN_API_KEY=nru_… -- npx -y netrun-mcp`
+- **Claude Code** — `claude mcp add netrun -s user -e NETRUN_API_KEY=nru_… -- npx -y netrun-mcp@latest`
+- **Codex** — `codex mcp add netrun --env NETRUN_API_KEY=nru_… -- npx -y netrun-mcp@latest`
 - **Claude Desktop, VS Code, Windsurf** — the JSON above in the MCP servers config.
 
 Node.js has to be installed — AI editors usually ship with it.
@@ -45,9 +45,11 @@ Node.js has to be installed — AI editors usually ship with it.
 | Tool | What it does |
 | --- | --- |
 | `netrun_publish` | Uploads a project folder and puts it online — a new project or a new version of an existing one. Detects the stack (Python, Node, Go, Rust, PHP, static HTML, Docker, docker-compose), asks for missing secrets, waits for the build and returns the URL or the failure reason. |
-| `netrun_status` | Is the project running, its URL, what blocks it and why the last publish failed. |
+| `netrun_status` | Is the project running, its URL, what blocks it, which secrets are already set and why the last publish failed. |
 | `netrun_logs` | Last lines of the application output — the first place to look when a bot goes silent. |
 | `netrun_set_secrets` | Saves tokens and API keys as environment variables (stored encrypted) and re-publishes so the app picks them up. |
+| `netrun_link` | Decides whether the project gets a public HTTPS address — for example a webhook bot we took for a background program. Re-publishes the project; the link appears if the app answers requests from the internet. |
+| `netrun_domains` | Points your own domain at the site and checks whether the registrar settings have taken effect. Until they have, it shows which records to add. |
 | `netrun_control` | Start, stop or restart a project. |
 | `netrun_list_projects` | All projects of the account with URLs and state. |
 | `netrun_whoami` | The plan, how many projects are available and how much free running time bots have left. |

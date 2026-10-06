@@ -4,7 +4,7 @@
  * пересказывает на языке человека сам.
  */
 
-import type { Project, ProjectEvent, Tariff } from './api.js'
+import type { Project, ProjectDomain, ProjectEvent, Tariff } from './api.js'
 
 export type Links = { appUrl: string }
 
@@ -85,10 +85,43 @@ export function describeProject(p: Project, links: Links): Record<string, unknow
     updated_at: p.updated_at,
   }
   if (p.custom_domain && p.custom_domain_status === 'verified') out.custom_domain = `https://${p.custom_domain}`
+  // Выбор человека («мне нужна ссылка» / «ссылка не нужна») — чтобы агент
+  // не предлагал netrun_link тому, кто уже решил.
+  if (p.app_kind_pinned) out.link_choice = p.app_kind_pinned === 'web' ? 'public link requested' : 'no public link'
   if (p.last_error) out.last_error = p.last_error
   if (p.pending_publish) out.note = 'Secrets were changed but not published yet — call netrun_set_secrets with publish=true or netrun_publish.'
   const problems = blockers(p, links)
   if (problems.length) out.problems = problems
+  return out
+}
+
+/**
+ * Чем кончилось «нужна ссылка / не нужна» — то, что агент скажет человеку.
+ * Зеркало `link_outcome` в `api/infrastructure/mcp/format.py`: две двери
+ * обязаны отвечать одинаково.
+ *
+ * ⚠️ «Просили ссылку, а тип не web» — не ошибка, а мягкая посадка: приложение
+ * не ответило ни на один запрос, платформа оставила его работать в фоне и
+ * сняла выбор. Агенту нужно назвать ПРИЧИНУ, иначе он позовёт снова.
+ */
+export function linkOutcome(p: Project, needed: boolean, waitSeconds: number): Record<string, unknown> {
+  const out: Record<string, unknown> = { needed }
+  if (IN_PROGRESS.has(p.status)) {
+    out.still_building = true
+    out.next = `The re-publish is still running after ${waitSeconds}s. Call netrun_status with this project_id later — do NOT call netrun_link again, it would start another build.`
+  } else if (p.status === 'failed') {
+    out.next = "The re-publish failed — read 'failure', fix the cause and publish again. The choice is kept."
+  } else if (needed && p.app_kind === 'web' && p.host_url) {
+    out.link = p.host_url
+    out.next = `The project now answers at ${p.host_url} over HTTPS. For a webhook bot register this address plus the handler path with the bot platform (Telegram: setWebhook). The choice survives later code updates.`
+  } else if (needed) {
+    out.link_confirmed = false
+    out.next =
+      'The app did not answer any request from the internet, so Netrun keeps it running in the background without a link — nothing is lost. ' +
+      'To get a link the app must listen on 0.0.0.0 on the port from the PORT environment variable. Fix the code, publish it, then call netrun_link with needed=true again.'
+  } else {
+    out.next = 'The project runs in the background without a public address.'
+  }
   return out
 }
 
@@ -107,6 +140,37 @@ export function lastFailure(events: ProjectEvent[]): Record<string, unknown> | n
     blame: pick('blame'),
     at: failed.created_at,
   }
+}
+
+const DOMAIN_STATUS_HUMAN: Record<string, string> = {
+  pending: 'waiting for the DNS records to take effect',
+  verified: 'working',
+  failed: 'the DNS records do not point at us',
+}
+
+/**
+ * Один свой домен — так, чтобы агент мог ПЕРЕСКАЗАТЬ это человеку.
+ * Зеркало `describe_domain` в `api/infrastructure/mcp/format.py`: две
+ * двери обязаны отвечать одинаково.
+ *
+ * ⚠️ DNS-записи отдаём всегда, а не только у непроверенных: пока запись
+ * не разошлась, человеку нужно видеть, что вписывать, а после проверки —
+ * что у него уже вписано. Агент прошлый ответ не помнит.
+ */
+export function describeDomain(d: ProjectDomain): Record<string, unknown> {
+  const out: Record<string, unknown> = {
+    domain: d.domain,
+    status: d.status,
+    status_human: DOMAIN_STATUS_HUMAN[d.status] ?? d.status,
+  }
+  if (d.dns_records?.length) {
+    out.dns_records = d.dns_records.map((r) => ({ type: r.type, name: r.name, value: r.value }))
+  }
+  if (d.checked && d.status !== 'verified') {
+    out.points_at_now = d.found_ips ?? []
+    out.should_point_at = d.expected_ips ?? []
+  }
+  return out
 }
 
 export function describeTariff(t: Tariff, links: Links): Record<string, unknown> {

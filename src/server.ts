@@ -18,12 +18,29 @@ import {
   IN_PROGRESS,
   checkoutUrl,
   dashboardUrl,
+  describeDomain,
   describeProject,
   describeTariff,
   humanBytes,
   lastFailure,
+  linkOutcome,
   toDotenv,
 } from './format.js'
+
+/**
+ * Агент прислал то, с чем работать нельзя. Отвечаем текстом с выходом, а
+ * не падением: ошибку читает модель и пересказывает человеку. Зеркало
+ * `ToolInputError` в `api/infrastructure/mcp/tools.py`.
+ */
+export class ToolError extends Error {
+  readonly code: string
+
+  constructor(code: string, message: string) {
+    super(message)
+    this.name = 'ToolError'
+    this.code = code
+  }
+}
 
 /** Описание действия для агента — из единого каталога (web/src/features/mcp/
  *  catalog.ts → catalog.generated.ts). Здесь их не пишем: тот же текст
@@ -41,6 +58,7 @@ Typical flow:
 2. If netrun_publish answers with needs_secrets, ASK THE USER for the values (for example the Telegram bot token from @BotFather) and call netrun_publish again with them in "secrets". Never invent or guess secret values.
 3. When the result says status "running", tell the user the public URL (websites) or that the bot is live (bots). If it says "failed", read "failure" and fix the code, then publish again.
 4. netrun_status and netrun_logs answer "is it working?" and "why not?".
+5. If a website, an API or a webhook bot has no URL (Netrun took it for a background program), call netrun_link with needed=true.
 
 People phrase these as, for example: ${PHRASES.map((p) => `"${p}"`).join(', ')}.
 
@@ -120,6 +138,7 @@ export function createServer(api: NetrunApi, cfg: Config): McpServer {
     guarded(async ({ project_id }) => {
       const project = await api.getProject(project_id)
       const out = describeProject(project, links)
+      out.secrets = await secretNames(api, project_id)
       if (project.status === 'failed') {
         out.failure = lastFailure(await api.eventsHistory(project_id))
       }
@@ -199,6 +218,67 @@ export function createServer(api: NetrunApi, cfg: Config): McpServer {
   )
 
   server.registerTool(
+    'netrun_domains',
+    {
+      title: 'Custom domain',
+      description: toolDescription('netrun_domains'),
+      inputSchema: {
+        project_id: z.number().int().positive(),
+        action: z
+          .enum(['list', 'add', 'check'])
+          .default('list')
+          .describe(
+            '"list" shows the domains and their DNS records, "add" attaches one more, "check" asks DNS whether the records have taken effect.',
+          ),
+        domain: z
+          .string()
+          .optional()
+          .describe('The domain itself, for action "add": "example.com" or "shop.example.com". Without http:// and without a trailing slash.'),
+      },
+      // Привязка домена ничего не ломает: сайт продолжает работать на
+      // прежнем адресе. Отвязки здесь нет намеренно — она гасит живой
+      // адрес и выбрасывает сертификат, а необратимое остаётся человеку.
+      annotations: { destructiveHint: false },
+    },
+    guarded(async ({ project_id, action, domain }) => domains(api, { project_id, action, domain })),
+  )
+
+  server.registerTool(
+    'netrun_link',
+    {
+      title: 'Public link',
+      description: toolDescription('netrun_link'),
+      inputSchema: {
+        project_id: z.number().int().positive(),
+        needed: z
+          .boolean()
+          .describe('true — the project needs a public HTTPS address (website, API, webhook bot). false — it runs in the background without one.'),
+        wait: z.boolean().default(true).describe('Wait for the re-publish to finish (up to wait_seconds). false = return right away.'),
+        wait_seconds: z.number().int().min(10).max(600).default(300),
+      },
+      // Ничего не удаляет: данные и секреты переживают переключение, выбор
+      // обратим тем же действием. Но проект перезапускается.
+      annotations: { destructiveHint: false, idempotentHint: true },
+    },
+    guarded(async ({ project_id, needed, wait, wait_seconds }) => {
+      const project = await api.setLink(project_id, needed)
+      if (!wait) {
+        return {
+          needed,
+          accepted: true,
+          project: describeProject(project, links),
+          next: 'The project is being re-published. Call netrun_status with this project_id in a minute or two.',
+        }
+      }
+      const final = await waitForDeploy(api, project_id, wait_seconds)
+      const out = linkOutcome(final, needed, wait_seconds)
+      out.project = describeProject(final, links)
+      if (final.status === 'failed') out.failure = lastFailure(await api.eventsHistory(project_id))
+      return out
+    }),
+  )
+
+  server.registerTool(
     'netrun_control',
     {
       title: 'Start / stop / restart',
@@ -216,6 +296,84 @@ export function createServer(api: NetrunApi, cfg: Config): McpServer {
   )
 
   return server
+}
+
+// ── Секреты и домены ───────────────────────────────────────────────────
+
+/**
+ * ИМЕНА уже заданных секретов — и никогда значения.
+ *
+ * Зачем это в статусе: без него агент переспрашивает токен, который
+ * человек уже вписал в кабинете, и получает в ответ раздражение вместо
+ * работы. Узнать он мог только одним способом — опубликовать и
+ * посмотреть, упадёт ли.
+ *
+ * ⚠️ Значения наружу не уходят: сама ручка отдаёт только ключи, и брать
+ * тут больше нечего. Нечитаемый файл честно помечаем — молчание про него
+ * выглядело бы как «переменных нет».
+ */
+async function secretNames(api: NetrunApi, projectId: number): Promise<Record<string, unknown>> {
+  let state: Awaited<ReturnType<NetrunApi['envFiles']>>
+  try {
+    state = await api.envFiles(projectId)
+  } catch {
+    // Секреты — справка, а не суть ответа: их недоступность не должна
+    // превращать «как дела у проекта» в ошибку.
+    return { files: [], note: 'Could not read the list of secrets.' }
+  }
+  const files = (state.files ?? []).map((f) => {
+    const entry: Record<string, unknown> = { file: f.name, keys: f.keys ?? [] }
+    if (f.readable === false) {
+      entry.note = 'This file cannot be read back, so its variable names are unknown. It can only be replaced as a whole.'
+    }
+    return entry
+  })
+  if (!files.length) {
+    return {
+      files,
+      note: 'No secrets saved yet. If the code needs a token, ask the user for it and call netrun_set_secrets.',
+    }
+  }
+  return { files }
+}
+
+type DomainArgs = { project_id: number; action: 'list' | 'add' | 'check'; domain?: string }
+
+/** Свой домен: показать, привязать, проверить. Зеркало `_domains` в
+ *  `api/infrastructure/mcp/tools.py` — две двери обязаны отвечать
+ *  одинаково, иначе человек получит разные советы в редакторе и в чате. */
+async function domains(api: NetrunApi, args: DomainArgs): Promise<Record<string, unknown>> {
+  const { project_id, action } = args
+  let state
+  if (action === 'add') {
+    const domain = (args.domain ?? '').trim()
+    if (!domain) {
+      throw new ToolError(
+        'no_domain',
+        'Pass the domain in "domain", for example "example.com". Ask the user which domain they own.',
+      )
+    }
+    state = await api.addDomain(project_id, domain)
+  } else if (action === 'check') {
+    state = await api.verifyDomains(project_id)
+  } else {
+    state = await api.listDomains(project_id)
+  }
+
+  const list = (state.domains ?? []).map(describeDomain)
+  const waiting = list.filter((d) => d.status !== 'verified')
+  const out: Record<string, unknown> = { project_id, action, domains: list }
+  if (!list.length) {
+    out.next = 'No custom domains yet. Ask the user which domain they own and call again with action "add".'
+  } else if (waiting.length) {
+    // Главное, ради чего агент сюда пришёл: что сказать человеку.
+    out.next =
+      'Give the user the dns_records above exactly as they are and ask them to add those at their domain registrar. ' +
+      'Records take from minutes to a few hours to spread — then call again with action "check". Do not poll in a loop.'
+  } else {
+    out.next = 'All domains are working; the site opens on them over HTTPS.'
+  }
+  return out
 }
 
 // ── Публикация ─────────────────────────────────────────────────────────
@@ -383,6 +541,9 @@ export function explainError(err: unknown, cfg: Config): Record<string, unknown>
   }
   if (err instanceof BundleError) {
     return { error: 'bundle', message: err.message }
+  }
+  if (err instanceof ToolError) {
+    return { error: err.code, message: err.message }
   }
   if (err instanceof ApiError) {
     const base: Record<string, unknown> = { error: err.code ?? `http_${err.status}`, message: err.message }
