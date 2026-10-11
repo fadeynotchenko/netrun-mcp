@@ -4,7 +4,7 @@
 
 Publish websites and Telegram bots to Netrun — upload a folder from your editor, get a URL.
 
-Connect Netrun to your AI editor and just ask: “publish this bot”. The agent uploads your code folder and sends back the link. MCP is the common way to connect external services to AI editors. With Netrun connected, you tell the agent in chat that you want the project online: it uploads the code folder, asks for a token if the code needs one, waits for the build and gives you the link. Works in Cursor, Claude Code, Codex, Claude Desktop, VS Code and Windsurf.
+Connect Netrun to your AI editor and just ask: “publish this bot”. The agent uploads your code folder and sends back the link. MCP is the common way to connect external services to AI editors. With Netrun connected, you tell the agent in chat that you want the project online: it uploads the code folder, asks for a token if the code needs one, waits for the build and gives you the link. Works in Cursor, Claude Code, Codex, Claude Desktop, VS Code and Windsurf, and in ChatGPT and Claude right in the browser.
 
 > Publish this bot to Netrun
 >
@@ -40,6 +40,10 @@ Connect Netrun to your AI editor and just ask: “publish this bot”. The agent
 
 Node.js has to be installed — AI editors usually ship with it.
 
+### ChatGPT, Claude in the browser — no install, no key
+
+Netrun also runs as a remote MCP server: `https://api.netrun.io/v1/mcp` (Streamable HTTP, OAuth sign-in). In the chat settings open connections (Connectors or Apps), add a custom one with this address and press Connect. You sign in to Netrun by email — no key needed. ChatGPT allows custom connections on paid plans — turn on developer mode in the settings. Claude allows them on every plan, one on the free plan. The agent takes the code right from the conversation; a large multi-file project is easier to publish from an editor.
+
 ## What the agent can do
 
 | Tool | What it does |
@@ -59,7 +63,7 @@ Node.js has to be installed — AI editors usually ship with it.
 - The agent cannot pay, renew a plan or buy places — you do that in the dashboard.
 - It cannot delete projects or files from persistent storage either — anything irreversible stays with you.
 - If the code needs a token or a password, the agent asks you before publishing — it never makes values up.
-- The access key lives only in your editor config; you can revoke it in the dashboard at any time.
+- The access key lives only in your editor config, and a connected chat is listed in the dashboard — you can revoke either there at any time.
 
 ## How it works
 

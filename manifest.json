@@ -2,9 +2,9 @@
   "manifest_version": "0.3",
   "name": "netrun",
   "display_name": "Netrun",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Publish websites and Telegram bots to Netrun — upload a folder from your editor, get a URL",
-  "long_description": "Connect Netrun to your AI editor and just ask: “publish this bot”. The agent uploads your code folder and sends back the link. MCP is the common way to connect external services to AI editors. With Netrun connected, you tell the agent in chat that you want the project online: it uploads the code folder, asks for a token if the code needs one, waits for the build and gives you the link. Works in Cursor, Claude Code, Codex, Claude Desktop, VS Code and Windsurf.",
+  "long_description": "Connect Netrun to your AI editor and just ask: “publish this bot”. The agent uploads your code folder and sends back the link. MCP is the common way to connect external services to AI editors. With Netrun connected, you tell the agent in chat that you want the project online: it uploads the code folder, asks for a token if the code needs one, waits for the build and gives you the link. Works in Cursor, Claude Code, Codex, Claude Desktop, VS Code and Windsurf, and in ChatGPT and Claude right in the browser.",
   "author": {
     "name": "Netrun",
     "url": "https://netrun.io"

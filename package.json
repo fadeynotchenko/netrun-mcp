@@ -1,6 +1,6 @@
 {
   "name": "netrun-mcp",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "mcpName": "io.github.fadeynotchenko/netrun",
   "description": "Publish websites and Telegram bots to Netrun straight from Cursor, Claude Code, Codex and any other MCP client",
   "keywords": [

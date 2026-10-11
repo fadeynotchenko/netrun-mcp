@@ -170,6 +170,19 @@ describe('netrun_status secrets', () => {
     expect(String(secrets.note)).toContain('ask the user')
   })
 
+  it('does not send the agent to ask for tokens when a .env came with the code', async () => {
+    // Платформа такой файл не хранит, но применяет как есть: «секретов нет»
+    // здесь было бы неправдой, и агент переспросил бы уже отданный токен.
+    const api = new FakeApi()
+    api.envState = { files: [], code_files: ['.env'] }
+    const client = await connect(api)
+    const res = payload(await client.callTool({ name: 'netrun_status', arguments: { project_id: 7 } }))
+    const secrets = res.secrets as { in_code?: string[]; note?: string }
+    expect(secrets.in_code).toEqual(['.env'])
+    expect(String(secrets.note)).toContain('came with the code')
+    expect(String(secrets.note)).not.toContain('No secrets saved yet')
+  })
+
   it('marks a file that cannot be read back instead of pretending it is empty', async () => {
     const api = new FakeApi()
     api.envState = { files: [{ name: '.env', keys: [], readable: false }] }

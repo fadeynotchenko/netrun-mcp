@@ -90,6 +90,11 @@ export type ProjectDomain = {
 
 export type DomainsState = { domains: ProjectDomain[] }
 
+export type EnvFilesState = {
+  files: { name: string; keys: string[]; readable: boolean }[]
+  code_files?: string[]
+}
+
 export type ProjectEvent = {
   id: number
   kind: 'step' | 'log' | 'status'
@@ -311,10 +316,10 @@ export class NetrunApi {
     })) as Project
   }
 
-  async envFiles(id: number): Promise<{ files: { name: string; keys: string[]; readable: boolean }[] }> {
-    return (await this.request(`/projects/${id}/env-files`)) as {
-      files: { name: string; keys: string[]; readable: boolean }[]
-    }
+  /** `code_files` — env-файлы, приехавшие вместе с кодом: платформа их не
+   *  хранит, но применяет как есть. */
+  async envFiles(id: number): Promise<EnvFilesState> {
+    return (await this.request(`/projects/${id}/env-files`)) as EnvFilesState
   }
 
   async control(id: number, action: 'start' | 'stop' | 'restart'): Promise<Project> {

@@ -60,6 +60,13 @@ Typical flow:
 4. netrun_status and netrun_logs answer "is it working?" and "why not?".
 5. If a website, an API or a webhook bot has no URL (Netrun took it for a background program), call netrun_link with needed=true.
 
+Working with the tools:
+- If a publish answers needs_secrets, ASK THE USER for the values (a Telegram bot token comes from @BotFather) and publish again with them in "secrets". Never invent or guess secret values.
+- netrun_status lists the names of secrets already saved — check it before asking the user for a token they may have already given.
+- When the user asks whether something works, call netrun_status instead of publishing again. Read netrun_logs before guessing why an app fails.
+- For a custom domain, give the DNS records to the user verbatim, ask them to add those at their registrar, then call netrun_domains with action "check".
+- After netrun_link gives a webhook bot its URL, register the URL (plus the handler path) with the bot platform, e.g. Telegram setWebhook.
+
 People phrase these as, for example: ${PHRASES.map((p) => `"${p}"`).join(', ')}.
 
 Rules of the platform the agent must respect:
@@ -69,7 +76,7 @@ ${LIMITS.map((l) => `- ${l}.`).join('\n')}
 
 const SECRETS_SCHEMA = z
   .record(z.string().regex(/^[A-Za-z0-9_]+$/, 'env variable names: letters, digits, underscore'), z.string())
-  .describe('Secrets as {"BOT_TOKEN": "123:abc"}. Stored encrypted; delivered to the app as environment variables via .env. Ask the user for values — never invent them.')
+  .describe('Secrets as {"BOT_TOKEN": "123:abc"}. Stored encrypted; delivered to the app as environment variables via .env.')
 
 export function createServer(api: NetrunApi, cfg: Config): McpServer {
   const server = new McpServer({ name: 'netrun', version: VERSION }, { instructions: INSTRUCTIONS })
@@ -328,6 +335,18 @@ async function secretNames(api: NetrunApi, projectId: number): Promise<Record<st
     }
     return entry
   })
+  // ⚠️ `.env`, приехавший вместе с кодом, платформа не хранит, но применяет
+  // как есть. Промолчи мы о нём — агент прочитал бы «секретов нет» и
+  // переспросил токен, который человек уже положил в папку. Зеркало
+  // `_secret_names` в `api/infrastructure/mcp/tools.py`.
+  const inCode = (state.code_files ?? []).filter(Boolean)
+  if (inCode.length) {
+    return {
+      files,
+      in_code: inCode,
+      note: 'These env files came with the code and are applied as they are: the tokens the app needs are probably already there. Do not ask the user for them again unless the logs show a missing value.',
+    }
+  }
   if (!files.length) {
     return {
       files,
